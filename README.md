@@ -31,7 +31,7 @@
 
 System: Python3.8
 
-1. ```git clone https://github.com/somanyadav/Youtube-Summariser.git```
+1. ```git clone https://github.com/harshakvs/Youtube-Summariser.git```
 2. ```cd Youtube-Summariser```
 3. ```pip install -r requirements.txt```
 4. ```pip install streamlit>=1.8.1```
