@@ -1,38 +1,58 @@
-# Youtube Summariser
+# Video Summarizer → Talking-Head Shorts
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/somanyadav/youtube-summariser/main/app.py)
+Turn a long YouTube video into a short clip of the speaker *saying* the summary.
 
-[![Youtube Summary App](https://github.com/somanyadav/Youtube-Summariser/blob/main/play.gif)](https://thumbs.gfycat.com/BeautifulTepidGermanwirehairedpointer-mobile.mp4)
+Paste a video URL and the app transcribes it with Whisper, summarizes the transcript, converts the summary to speech, finds the clearest frame of the speaker's face, and uses Wav2Lip to lip-sync that face to the new audio. The result is a short, watchable recap instead of a wall of text.
 
-## Why YouTube Summariser
+> Built in 2024 on top of [somanyadav/Youtube-Summariser](https://github.com/somanyadav/Youtube-Summariser), which provides the text summarization, translation, and text-to-speech. The speech recognition, face detection, lip-sync video generation, and multi-page app flow are my additions.
 
-<ul>For many videos, the main content of the videos is only 50-60% of the total length.</ul>
+## How it works
 
-<ul>Youtube summarizer will summarize the content of the video by keeping all the important points and making it short and easily understandable.</ul>
+```
+YouTube URL
+   │
+   ├─▶ download video + audio (pytube, moviepy)
+   │
+   ├─▶ transcribe ─────────── Whisper large-v3 (FP16 on GPU, 30s chunks, batched)
+   │
+   ├─▶ summarize ─────────── extractive (Gensim, NLTK, spaCy, TF-IDF) or abstractive (T5, BART)
+   │        └─▶ translate + text-to-speech (Google Translate, gTTS)
+   │
+   ├─▶ best face frame ───── OpenCV DNN face detector (SSD ResNet-10), keeps the largest confident face
+   │
+   └─▶ lip-sync ──────────── Wav2Lip (GAN checkpoint) drives the face with the summary audio
+                                  │
+                                  ▼
+                        short talking-head video
+```
 
-<ul>Summarizing transcripts of such videos automatically allows us to quickly look out for the important patterns in the video and helps us to save time and efforts to go through the whole content of the video.</ul>
+## What I added
 
-## How it Works
+| Piece | What it does |
+|---|---|
+| **Whisper transcription** | Replaces YouTube's captions with `openai/whisper-large-v3` via Hugging Face, so videos without captions work too |
+| **Face selection** (`face.py`) | Scans frames with an SSD face detector and keeps the largest high-confidence (>0.8) face as the lip-sync source |
+| **Lip-sync generation** | Runs Wav2Lip on the chosen face and the summary audio to produce the final clip |
+| **Media utilities** | Download, trim, convert and merge audio/video (`download.py`, `cut-length.py`, `audio-check.py`) |
+| **App flow** | Three Streamlit pages: download + face detection → transcript → generated short |
 
-![Youtube Summarizer](https://github.com/somanyadav/Youtube-Summariser/blob/main/structure.JPG)
+## Running it
 
+This is a research prototype written on Windows, so file paths are hard-coded in `app.py` and the helper scripts. Update them for your machine first.
 
-## App Features
+1. `pip install -r requirements.txt streamlit moviepy pydub opencv-python`
+2. Clone [Wav2Lip](https://github.com/Rudrabha/Wav2Lip) and download its `wav2lip_gan.pth` checkpoint
+3. Point the Wav2Lip paths in `app.py` at your clone
+4. `streamlit run app.py`
 
-<ol>Get summary by using different summarization algorithms.</ol>
+A GPU is strongly recommended for Whisper large-v3 and Wav2Lip.
 
-<ol>Change the length of the summary as the user wants.</ol>
+## Responsible use
 
-<ol>Generate summary of a video in any language.</ol>
+Lip-sync makes it easy to put words in someone's mouth. Use this only on content you own or have permission to adapt, and label generated clips as AI-generated.
 
-<ol>Provide summary in the form of text and audio</ol>
+## Credits
 
-## Installation
-
-System: Python3.8
-
-1. ```git clone https://github.com/harshakvs/Youtube-Summariser.git```
-2. ```cd Youtube-Summariser```
-3. ```pip install -r requirements.txt```
-4. ```pip install streamlit>=1.8.1```
-5. ```streamlit run app.py```
+- Summarization app: [somanyadav/Youtube-Summariser](https://github.com/somanyadav/Youtube-Summariser)
+- Lip-sync: [Wav2Lip](https://github.com/Rudrabha/Wav2Lip) (Prajwal et al., ACM MM 2020)
+- Speech recognition: [Whisper](https://github.com/openai/whisper) (OpenAI)
